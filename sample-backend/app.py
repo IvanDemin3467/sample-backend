@@ -1,16 +1,15 @@
 from __future__ import annotations
-import uuid
 
 from flask import Flask, jsonify, request
 
-from myrepository import *
+from myrepository.repository_factory import RepositoryFactory
 
 """
 Начало работы REST API сервиса
 """
 app = Flask(__name__)  # инициализация объекта, с которым сможет работать WSGI сервер
 app.config['SECRET_KEY'] = 'gh5ng843bh68hfi4nfc6h3ndh4xc53b56lk89gm4bf2gc6ehm'  # произвольная случайная длинная строка
-repo = RepositoryCreator.create()  # инициализация репозитория
+repo = RepositoryFactory.create()  # инициализация репозитория
 
 
 @app.route('/user/<int:entity_id>', methods=['GET'])
