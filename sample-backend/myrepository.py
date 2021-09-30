@@ -4,6 +4,7 @@ import json  # to read options from file
 import sys  # for repository factory (it creates class by name (string))
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 import time
 
@@ -42,11 +43,8 @@ DB_NAME = "postgres"
 TABLE_NAME = "sample_table"
 HOST_NAME = "localhost"
 ENTITY_TEMPLATE = {'id': -1,
-                   'title': 'Y Combinator',
-                   'url': 'http://ycombinator.com',
-                   'created_at': '2006-10-09T18:21:51.000Z',
-                   'points': 0,
-                   'num_comments': 0}
+                   'title': 'title',
+                   'value': 'value'}
 
 
 # Repository start
@@ -305,7 +303,7 @@ class RepositoryPostgres(AbstractRepository):
         :param options: словарь параметров. Для данного репозитория используются параметры username, password
         """
         self.__options = options  # Сохранить настройки
-        # self.__init_db()  # Инициализировать базу данных
+        self.__init_db()  # Инициализировать базу данных
         self._cache = {}  # Инициализировать простой кэш
 
     def __get_db_connection(self) -> psycopg2.connect:
@@ -343,6 +341,7 @@ class RepositoryPostgres(AbstractRepository):
         """
         try:
             conn = self.__get_db_connection()  # Создать подключение
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query, entity)  # выполнить запрос безопасным образом
                 print(query, entity)
@@ -365,15 +364,22 @@ class RepositoryPostgres(AbstractRepository):
         """
         # results = self.__make_query(
         #     f"CREATE DATABASE {DB_NAME};")  # создать базу с именем DB_NAME, если не существует
-        results = self.__make_query(f"DROP TABLE {TABLE_NAME};")  # удаляем таблицу из предыдущих запусков
+        results = self.__make_query(f"DROP TABLE public.{TABLE_NAME};")  # удаляем таблицу из предыдущих запусков
         print(results)
         # далее создать таблицу.
         #   id: целочисленное без автоматического инкремента
         #   title: строковое с максимальной длинной 255
-        results = self.__make_query(f"""CREATE TABLE {TABLE_NAME} 
-                                        (id SERIAL PRIMARY KEY, 
-                                        {self.template_keys[1]} VARCHAR(255) NOT NULL)
-                                        """)
+        results = self.__make_query(f"""
+CREATE TABLE IF NOT EXISTS public.sample_table
+(
+    id integer NOT NULL,
+    title character varying(255),
+    value character varying(255),
+    PRIMARY KEY (id)
+);
+
+ALTER TABLE public.sample_table
+    OWNER to postgres;""")
         print(results)
         return 0
 
@@ -398,13 +404,25 @@ class RepositoryPostgres(AbstractRepository):
 
     @staticmethod
     def __format_keys_no_id(entity: dict) -> str:
-        keys = ", ".join(list(entity.keys())[1:])
+        current_entity = entity.copy()
+        current_entity.pop('id')
+        keys_list = list(current_entity.keys())
+        if len(keys_list) == 1:
+            keys = keys_list[0]
+        else:
+            keys = f'({", ".join(list(entity.keys())[1:])})'
         # print(keys)
         return keys
 
     @staticmethod
     def __format_values_no_id(entity: dict) -> str:
-        values = "%(" + ")s, %(".join(list(entity.keys())[1:]) + ")s"
+        current_entity = entity.copy()
+        current_entity.pop('id')
+        values_list = list(current_entity.keys())
+        if len(values_list) == 1:
+            values = f"%({values_list[0]})s"
+        else:
+            values = "(%(" + ")s, %(".join(values_list) + ")s)"
         # print(values)
         return values
 
@@ -477,7 +495,7 @@ class RepositoryPostgres(AbstractRepository):
             keys = self.__format_keys_no_id(entity)
             values = self.__format_values_no_id(entity)
             self.__make_query(f"""UPDATE {TABLE_NAME} 
-                                SET ({keys}) = ({values}) 
+                                SET {keys} = {values} 
                                 WHERE id = %(id)s RETURNING id;""",
                               entity=entity)
             self.__clear_cache()

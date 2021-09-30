@@ -5,51 +5,6 @@ from flask import Flask, jsonify, request
 
 from myrepository import *
 
-BOOKS = [
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'On the Road',
-        'author': 'Jack Kerouac',
-        'read': True
-    },
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Harry Potter and the Philosopher\'s Stone',
-        'author': 'J. K. Rowling',
-        'read': False
-    },
-    {
-        'id': uuid.uuid4().hex,
-        'title': 'Green Eggs and Ham',
-        'author': 'Dr. Seuss',
-        'read': True
-    }
-]
-
-TABLE = [
-    {
-        'date': '22.09.2021',
-        'title': 'Apples',
-        'amount': '12',
-        'distance': '125'
-    },
-    {
-        'date': '21.09.2021',
-        'title': 'Oranges',
-        'amount': '14',
-        'distance': '135'
-    },
-    {
-        'date': '20.09.2021',
-        'title': 'Bananas',
-        'amount': '15',
-        'distance': '168'
-    }
-]
-
-# configuration
-DEBUG = True
-
 """
 Начало работы REST API сервиса
 """
@@ -68,10 +23,10 @@ def get_entity(entity_id: int) -> (str, int):
              иначе возвращает код 404
              Формат возвращаемого значения: {"id": user_id, "title": title}
     """
-    entity = repo.get(entity_id)
-    if entity == {}:
+    result = repo.get(entity_id)
+    if result == {}:
         return "Rejected. No entity with id=" + str(entity_id), 404
-    return jsonify(entity), 200
+    return jsonify(result), 200
 
 
 @app.route('/user', methods=['GET'])
@@ -100,8 +55,9 @@ def add_entity(entity_id: int) -> (str, int):
              иначе создаёт и возвращает код 204
     """
     title = request.args.get('title')
-    entity = {'title': title, 'id': entity_id}
-    if repo.add(entity) == -1:
+    # new_entity = {'title': title, 'id': entity_id}
+    new_entity = repo.get_template(entity_id=entity_id, par1=title)
+    if repo.add(new_entity) == -1:
         return "Rejected. User with id=" + str(entity_id) + " already exists", 422
     return 'Success. User created', 204
 
@@ -131,11 +87,12 @@ def upd_entity(entity_id: int) -> (str, int):
              иначе изменяет его данные и возвращает код 204
     """
     title = request.args.get('title')
-    entity = {'title': title, 'id': entity_id}
-    result = repo.update(entity)
+    # new_entity = {'title': title, 'id': entity_id}
+    new_entity = repo.get_template(entity_id=entity_id, par1=title)
+    result = repo.update(new_entity)
     if result == -1:
-        return "Rejected. No user with id=" + str(entity_id), 404
-    return 'Success. User updated', 204
+        return "Rejected. No entity with id=" + str(entity_id), 404
+    return 'Success. Entity updated', 204
 
 
 if __name__ == '__main__':
@@ -145,32 +102,20 @@ if __name__ == '__main__':
     """
 
     entity = repo.get_template(1, "qwe")
-    '''entity = {'id': 1,
-              'title': 'Y Combinator',
-              'url': 'http://ycombinator.com',
-              'created_at': '2006-10-09T18:21:51.000Z',
-              'points': 57,
-              'num_comments': 0}'''
     repo.add(entity)
     print(repo.get(1))
     entity = repo.get_template(3, "rty")
-    '''entity = {'id': 2,
-              'title': 'Build your own React',
-              'url': 'https://pomb.us/build-your-own-react/',
-              'created_at': '2019-11-13T18:21:51.000Z',
-              'points': 1478,
-              'num_comments': 108}'''
     repo.add(entity)
     print(repo.list())
 
     repo.delete(1)
     print(repo.list())
 
-    entity = repo.get_template(2, "123")
+    entity = repo.get_template(3, "123")
     repo.update(entity)
     print(repo.list())
 
-    repo.delete(2)
+    repo.delete(3)
     print(repo.list())
 
     app.run(host="127.0.0.1", port=80)
