@@ -22,6 +22,10 @@ class AbstractRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_paginated(self, page: int) -> list:
+        raise NotImplementedError
+
+    @abstractmethod
     def add(self, entity: dict) -> int:
         raise NotImplementedError
 

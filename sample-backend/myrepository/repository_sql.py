@@ -7,6 +7,7 @@ import json
 DB_NAME = "postgres"
 TABLE_NAME = "sample_table"
 HOST_NAME = "localhost"
+PAGE_LIMIT = 10
 
 
 class RepositoryPostgres(AbstractRepository):
@@ -172,6 +173,18 @@ ALTER TABLE public.sample_table
         :return: если репозиторий не пуст, то возвращает список c сущностями из него, иначе возвращает []
         """
         entities_list = self.__make_query(f"SELECT * FROM {TABLE_NAME}")
+        if entities_list is None:
+            return []
+        return entities_list
+
+    def list_paginated(self, page: int) -> list:
+        """
+        Возвращает пользователей в базе постранично
+        :param page: номер страницы, начиная с 1
+        :return: если репозиторий не пуст, то возвращает список c сущностями из него, иначе возвращает []
+        """
+        offset = (page - 1) * PAGE_LIMIT
+        entities_list = self.__make_query(f"SELECT * FROM {TABLE_NAME} LIMIT {PAGE_LIMIT} OFFSET {offset}")
         if entities_list is None:
             return []
         return entities_list

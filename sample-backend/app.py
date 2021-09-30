@@ -100,21 +100,17 @@ if __name__ == '__main__':
     При запуске через WSGI-сервер этот блок игнорируется
     """
 
-    entity = repo.get_template(1, "qwe")
-    repo.add(entity)
-    print(repo.get(1))
-    entity = repo.get_template(3, "rty")
-    repo.add(entity)
-    print(repo.list())
+    for i in range(11):
+        entity = repo.get_template(i, str(i))
+        repo.add(entity)
+    print(repo.list_paginated(1))
 
-    repo.delete(1)
-    print(repo.list())
-
-    entity = repo.get_template(3, "123")
+    entity = repo.get_template(1, "123")
     repo.update(entity)
     print(repo.list())
 
-    repo.delete(3)
+    for i in range(11):
+        repo.delete(i)
     print(repo.list())
 
     app.run(host="127.0.0.1", port=80)
