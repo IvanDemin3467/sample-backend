@@ -37,7 +37,7 @@ def list_entities() -> (str, int):
              иначе возвращает код 404
              Формат возвращаемого значения: [{"id": user_id1, "title": title1}, {"id": user_id2, "title": title2}]
     """
-    entities_list = repo.list()
+    entities_list = repo.index()
     if not entities_list:
         return "Rejected. DB is empty", 404
     return jsonify(entities_list), 200
@@ -100,17 +100,17 @@ if __name__ == '__main__':
     При запуске через WSGI-сервер этот блок игнорируется
     """
 
-    for i in range(11):
+    for i in range(12):
         entity = repo.get_template(i, str(i))
         repo.add(entity)
-    print(repo.list_paginated(1))
+    print(repo.list_paginated(2))
 
     entity = repo.get_template(1, "123")
     repo.update(entity)
-    print(repo.list())
+    print(repo.index())
 
-    for i in range(11):
+    for i in range(12):
         repo.delete(i)
-    print(repo.list())
+    print(repo.index())
 
     app.run(host="127.0.0.1", port=80)

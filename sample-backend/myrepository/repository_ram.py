@@ -53,7 +53,7 @@ class RepositoryBytearray(AbstractRepository):
         return self.__factory.empty_entity
 
     @measure_time
-    def list(self) -> list[Entity]:
+    def index(self) -> list[Entity]:
         """
         Возвращает все сущности из репозитория
         :return: если репозиторий не пустой, то возвращает список c сущностями из него, иначе возвращает []
@@ -160,7 +160,7 @@ class RepositoryRAM(AbstractRepository):
         return self.__factory.empty_entity
 
     @measure_time
-    def list(self) -> list[Entity]:
+    def index(self) -> list[Entity]:
         """
         Возвращает все сущности из репозитория
         :return: если репозиторий не пустой, то возвращает список c сущностями из него, иначе возвращает []

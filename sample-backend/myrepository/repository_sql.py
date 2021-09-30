@@ -167,7 +167,7 @@ ALTER TABLE public.sample_table
         except IndexError:
             return {}
 
-    def list(self) -> list[dict]:
+    def index(self) -> list[dict]:
         """
         Возвращает всех пользователей в базе
         :return: если репозиторий не пуст, то возвращает список c сущностями из него, иначе возвращает []
@@ -177,7 +177,7 @@ ALTER TABLE public.sample_table
             return []
         return entities_list
 
-    def list_paginated(self, page: int) -> list:
+    def list_paginated(self, page: int) -> list[dict]:
         """
         Возвращает пользователей в базе постранично
         :param page: номер страницы, начиная с 1

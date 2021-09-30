@@ -18,11 +18,11 @@ class AbstractRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list(self) -> list[dict]:
+    def index(self) -> list[dict]:
         raise NotImplementedError
 
     @abstractmethod
-    def list_paginated(self, page: int) -> list:
+    def list_paginated(self, page: int) -> list[dict]:
         raise NotImplementedError
 
     @abstractmethod
