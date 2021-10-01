@@ -3,12 +3,11 @@ from __future__ import annotations
 import json  # to read options from file
 import sys  # for repository factory (it creates class by name (string))
 
-import time
-
 # from myfactory import *
 from .abstract_repository import AbstractRepository
 from .abstract_repository_factory import AbstractRepositoryFactory
-from .repository_ram import RepositoryList, RepositoryBytearray
+from .repository_list import RepositoryList
+from .repository_bytearray import RepositoryBytearray
 from .repository_sql import RepositoryPostgres
 
 OPTIONS_FILE_PATH = "options.json"
