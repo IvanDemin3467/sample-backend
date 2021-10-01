@@ -44,7 +44,7 @@ class RepositoryMySQL(AbstractRepository):
     Это конкретная реализация репозитория для хранения сущностей Entity в базе данных MySQL.
     Используется доступ по логину и паролю
     Класс может быть создан при помощи фабрики RepositoryFactory в качестве одного из дух возможных вариантов.
-    Другая возможность - использовать репозиторий RepositoryRAM.
+    Другая возможность - использовать репозиторий RepositoryList.
     """
 
     def __init__(self, options: dict):
@@ -79,7 +79,7 @@ class RepositoryMySQL(AbstractRepository):
         Использует передачу именованных параметров для противостояния атакам SQL injection
         Если при вызове передан небезопасный запрос, то исключения не возникает
         :param query: строка запроса к базе, отформатированная в соответствии со стандартами MySQL
-        :param user_id: целочисленное значение id сущности для передачи в качестве параметра в запрос
+        :param entity_id: целочисленное значение id сущности для передачи в качестве параметра в запрос
         :param title: строковое значение заголовка сущности для передачи в качестве параметра в запрос
         :return: возвращает ответ от базы данных.
         Это может быть список словарей с параметрами сущностей в случае запроса SELECT,
@@ -137,7 +137,7 @@ class RepositoryMySQL(AbstractRepository):
         if key in self._cache:
             results = self._cache[key]
         else:
-            results = self.__make_query("SELECT * FROM users WHERE id = %(user_id)s", user_id=user_id)
+            results = self.__make_query("SELECT * FROM users WHERE id = %(entity_id)s", user_id=user_id)
             self._cache[key] = results
 
         if len(results) == 0:
@@ -163,7 +163,7 @@ class RepositoryMySQL(AbstractRepository):
         :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
         """
         if self.get(entity.id).id == -1:
-            self.__make_query("INSERT INTO users (id, title) VALUES (%(user_id)s, %(title)s);",
+            self.__make_query("INSERT INTO users (id, title) VALUES (%(entity_id)s, %(title)s);",
                               user_id=entity.id, title=entity.properties["title"])
             self.__clear_cache()
             return 0
@@ -177,7 +177,7 @@ class RepositoryMySQL(AbstractRepository):
         :return: если сущность с таким id существует на момент удаления, то возвращает 0, иначе возвращает -1
         """
         if self.get(user_id).id != -1:
-            self.__make_query("DELETE FROM users WHERE id = %(user_id)s;", user_id=user_id)
+            self.__make_query("DELETE FROM users WHERE id = %(entity_id)s;", user_id=user_id)
             self.__clear_cache()
             return 0
         return -1
@@ -190,7 +190,7 @@ class RepositoryMySQL(AbstractRepository):
         :return: если сущность с таким id существует, то возвращает обновляет её и возвращает 0, иначе возвращает -1
         """
         if self.get(entity.id).id != -1:
-            self.__make_query("UPDATE users SET title = %(title)s WHERE id = %(user_id)s",
+            self.__make_query("UPDATE users SET title = %(title)s WHERE id = %(entity_id)s",
                               user_id=entity.id, title=entity.properties["title"])
             self.__clear_cache()
             return 0
@@ -211,7 +211,7 @@ class RepositoryCreator(AbstractRepositoryCreator):
     """
     Это класс-фабрика репозиториев. Он возвращает в качестве репозитория один из двух инстансов:
         RepositoryMySQL для хранения записей пользователей в MySQL базе данных или
-        RepositoryRAM для хранения записей пользователей в оперативной памяти.
+        RepositoryList для хранения записей пользователей в оперативной памяти.
     Также класс умеет загружать настройки программы из файла при помощи метода __get_options()
     Единственный доступный извне метод - классовый метод create(), возвращающий выбранный репозиторий
     """
@@ -223,7 +223,7 @@ class RepositoryCreator(AbstractRepositoryCreator):
         :return: словарь с настройками
             repo_type: содержит имя класса, который будет создаваться этой фабрикой репозиториев. Возможные значения:
                 RepositoryMySQL - хранит сущности в базе MySQL
-                RepositoryRAM - хранит сущности в оперативной памяти
+                RepositoryList - хранит сущности в оперативной памяти
             username: логин для доступа к базе
             password: пароль для доступа к базе
         """

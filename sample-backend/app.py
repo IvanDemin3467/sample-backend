@@ -20,7 +20,7 @@ def get_entity(entity_id: int) -> (str, int):
     :param entity_id: целочисленное значение id пользователя
     :return: если пользователь найден в базе, то возвращает json с данными пользователя и код 200,
              иначе возвращает код 404
-             Формат возвращаемого значения: {"id": user_id, "title": title}
+             Формат возвращаемого значения: {"id": entity_id, "title": title}
     """
     result = repo.get(entity_id)
     if result == {}:

@@ -8,7 +8,7 @@ import time
 # from myfactory import *
 from .abstract_repository import AbstractRepository
 from .abstract_repository_factory import AbstractRepositoryFactory
-from .repository_ram import RepositoryRAM, RepositoryBytearray
+from .repository_ram import RepositoryList, RepositoryBytearray
 from .repository_sql import RepositoryPostgres
 
 OPTIONS_FILE_PATH = "options.json"
@@ -18,7 +18,7 @@ class RepositoryFactory(AbstractRepositoryFactory):
     """
     Это класс-фабрика репозиториев. Он возвращает в качестве репозитория один из двух инстансов:
         RepositoryMySQL для хранения записей пользователей в MySQL базе данных или
-        RepositoryRAM для хранения записей пользователей в оперативной памяти.
+        RepositoryList для хранения записей пользователей в оперативной памяти.
     Также класс умеет загружать настройки программы из файла при помощи метода __get_options()
     Единственный доступный извне метод - классовый метод create(), возвращающий выбранный репозиторий
     """
@@ -31,7 +31,7 @@ class RepositoryFactory(AbstractRepositoryFactory):
         :return: словарь с настройками
             repo_type: содержит имя класса, который будет создаваться этой фабрикой репозиториев. Возможные значения:
                 RepositoryMySQL - хранит сущности в базе MySQL
-                RepositoryRAM - хранит сущности в оперативной памяти
+                RepositoryList - хранит сущности в оперативной памяти
             username: логин для доступа к базе
             password: пароль для доступа к базе
         """
