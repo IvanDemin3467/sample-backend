@@ -14,7 +14,7 @@ class AbstractRepository(ABC):
     template_keys = list(ENTITY_TEMPLATE.keys())
 
     @abstractmethod
-    def get(self, reference) -> dict:
+    def get(self, reference: int) -> dict:
         raise NotImplementedError
 
     @abstractmethod
@@ -30,7 +30,7 @@ class AbstractRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete(self, reference) -> int:
+    def delete(self, reference: int) -> int:
         raise NotImplementedError
 
     @abstractmethod
