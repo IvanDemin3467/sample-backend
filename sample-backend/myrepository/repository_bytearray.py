@@ -57,6 +57,24 @@ class RepositoryBytearray(AbstractRepository):
         result["id"] = entity_id
         return result
 
+    def __write_entry(self, entity: dict, write_if_exists=False) -> int:
+        """
+        Записывает новую сущность в репозиторий
+        :param entity: сущность с заполненными параметрами
+        :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
+        """
+        truncated = entity.copy()  # Prepare the object for storage.
+        truncated.pop("id")  # Remove the excessive "id" field.
+        serialized = json.dumps(truncated)  # Convert to string
+        to_db = bytearray(serialized, 'utf-8')  # Convert to bytearray
+
+        first_byte, _ = self.__get_address(entity["id"])  # Specify the starting byte of the record in the repository
+        if self.__db[first_byte] == write_if_exists:  # Check if entry is empty (first byte is zero)
+            for i in range(len(to_db)):  # Writing byte by byte
+                self.__db[first_byte + i] = to_db[i]
+            return 0
+        return -1
+
     @measure_time
     def get(self, entity_id: int) -> dict:
         """
@@ -107,17 +125,7 @@ class RepositoryBytearray(AbstractRepository):
         :param entity: сущность с заполненными параметрами
         :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
         """
-        truncated = entity.copy()  # Prepare the object for storage.
-        truncated.pop("id")  # Remove the excessive "id" field.
-        serialized = json.dumps(truncated)
-        to_db = bytearray(serialized, 'utf-8')
-
-        first_byte, last_byte = self.__get_address(entity["id"])
-        if self.__db[first_byte] == 0:
-            for i in range(len(to_db)):
-                self.__db[first_byte + i] = to_db[i]
-            return 0
-        return -1
+        return self.__write_entry(entity, write_if_exists=False)
 
     @measure_time
     def delete(self, entity_id: int) -> int:
@@ -140,11 +148,4 @@ class RepositoryBytearray(AbstractRepository):
         :param entity: сущность с заполненными параметрами
         :return: если сущность с таким id существует, то возвращает 0, иначе возвращает -1
         """
-        first_byte, last_byte = self.__get_address(entity["id"])
-        title = entity["title"]
-        to_db = bytearray(title, 'utf-8')
-        if self.__db[first_byte] != 0:
-            for i in range(len(to_db)):
-                self.__db[first_byte + i] = to_db[i]
-            return 0
-        return -1
+        return self.__write_entry(entity, write_if_exists=True)

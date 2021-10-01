@@ -100,7 +100,7 @@ if __name__ == '__main__':
     При запуске через WSGI-сервер этот блок игнорируется
     """
 
-    for i in range(12):
+    for i in range(1, 12):
         entity = repo.get_template(i, str(i))
         repo.add(entity)
     print(repo.list_paginated(2))
