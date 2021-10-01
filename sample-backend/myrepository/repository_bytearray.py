@@ -45,13 +45,14 @@ class RepositoryBytearray(AbstractRepository):
         :param entity_id: целочисленное значение id сущности
         :return: если сущность найдена в репозитории, то возвращает сущность, иначе возвращает {}
         """
+        if entity_id > self.__db_length:  # Check if we have overstepped
+            return {}
         first_byte, last_byte = self.__get_address(entity_id)  # Get boundaries of entry in repository
-        if self.__db[first_byte] == 0:
+        if self.__db[first_byte] == 0:  # Check if the entry is empty
             return {}
         sequence = self.__db[first_byte:last_byte]  # Read bytes from repository
         truncated = sequence.rstrip(b"\x00")  # Remove trailing zeros
         serialized = truncated.decode("utf-8")  # Convert to string
-        print("serialized", serialized)
         result = json.loads(serialized)  # Convert to dict
         result["id"] = entity_id
         return result
@@ -91,11 +92,10 @@ class RepositoryBytearray(AbstractRepository):
         results = []
         offset = (page - 1) * PAGE_LIMIT
         limit = offset + PAGE_LIMIT
-        for i in range(limit, offset):
-            first_byte, last_byte = self.__get_address(i)
-            if self.__db[first_byte] != 0:
-                response = self.__db[first_byte:last_byte].rstrip(b"\x00").decode("utf-8")
-                results.append(self.get_template(i, response))
+        for entity_id in range(offset, limit):
+            response = self.__read_entity(entity_id)
+            if response != {}:
+                results.append(response)
         if len(results) != 0:
             return results
         return []
@@ -107,8 +107,12 @@ class RepositoryBytearray(AbstractRepository):
         :param entity: сущность с заполненными параметрами
         :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
         """
+        truncated = entity.copy()  # Prepare the object for storage.
+        truncated.pop("id")  # Remove the excessive "id" field.
+        serialized = json.dumps(truncated)
+        to_db = bytearray(serialized, 'utf-8')
+
         first_byte, last_byte = self.__get_address(entity["id"])
-        to_db = bytearray(str(entity), 'utf-8')
         if self.__db[first_byte] == 0:
             for i in range(len(to_db)):
                 self.__db[first_byte + i] = to_db[i]
