@@ -57,7 +57,7 @@ class RepositoryBytearray(AbstractRepository):
         result["id"] = entity_id
         return result
 
-    def __write_entry(self, entity: dict, write_if_exists=False) -> int:
+    def __write_entry(self, entity: dict, creation_flag=False) -> int:
         """
         Записывает новую сущность в репозиторий
         :param entity: сущность с заполненными параметрами
@@ -69,11 +69,21 @@ class RepositoryBytearray(AbstractRepository):
         to_db = bytearray(serialized, 'utf-8')  # Convert to bytearray
 
         first_byte, _ = self.__get_address(entity["id"])  # Specify the starting byte of the record in the repository
-        if self.__db[first_byte] == write_if_exists:  # Check if entry is empty (first byte is zero)
-            for i in range(len(to_db)):  # Writing byte by byte
+        """
+        #=========================#=================#==========#=====================================================#
+        |  self.__db[first_byte]  |  creation_flag  |  Result  |                    Comment                          |
+        #=========================#=================#==========#=====================================================#
+        |             0           |      False      |  False   |  Entry does not exist. Update should fail.          |
+        |             0           |      True       |  True    |  Entry does not exist. Creation must be successful. |
+        |             1           |      False      |  True    |  Entry exists. Update must be successful.           |
+        |             1           |      True       |  False   |  Entry exists. Creation should fail.                |
+        #=========================#=================#==========#=====================================================#
+        """
+        if (self.__db[first_byte] != 0) == creation_flag:  # Checking if data needs to be written
+            for i in range(len(to_db)):  # Writing data byte by byte
                 self.__db[first_byte + i] = to_db[i]
-            return 0
-        return -1
+            return 0  # Indicate that we have made some changes to the repository
+        return -1  # Indicate that no data written
 
     @measure_time
     def get(self, entity_id: int) -> dict:
@@ -96,9 +106,7 @@ class RepositoryBytearray(AbstractRepository):
             response = self.__read_entity(entity_id)
             if response != {}:
                 results.append(response)
-        if len(results) != 0:
-            return results
-        return []
+        return results
 
     @measure_time
     def list_paginated(self, page: int) -> list[dict]:
@@ -114,9 +122,7 @@ class RepositoryBytearray(AbstractRepository):
             response = self.__read_entity(entity_id)
             if response != {}:
                 results.append(response)
-        if len(results) != 0:
-            return results
-        return []
+        return results
 
     @measure_time
     def add(self, entity: dict) -> int:
@@ -125,7 +131,7 @@ class RepositoryBytearray(AbstractRepository):
         :param entity: сущность с заполненными параметрами
         :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
         """
-        return self.__write_entry(entity, write_if_exists=False)
+        return self.__write_entry(entity, creation_flag=False)
 
     @measure_time
     def delete(self, entity_id: int) -> int:
@@ -148,4 +154,4 @@ class RepositoryBytearray(AbstractRepository):
         :param entity: сущность с заполненными параметрами
         :return: если сущность с таким id существует, то возвращает 0, иначе возвращает -1
         """
-        return self.__write_entry(entity, write_if_exists=True)
+        return self.__write_entry(entity, creation_flag=True)
