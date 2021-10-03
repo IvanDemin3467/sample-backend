@@ -8,7 +8,7 @@ from .abstract_repository import AbstractRepository
 from .abstract_repository_factory import AbstractRepositoryFactory
 from .repository_list import RepositoryList
 from .repository_bytearray import RepositoryBytearray
-from .repository_sql import RepositoryPostgres
+from .repository_postgres import RepositoryPostgres
 
 OPTIONS_FILE_PATH = "options.json"
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 
-# Factory for entities start
+# Factory for entities. It is deprecated.
 class TypeChecker:
     """
     Это дескриптор, проверяющий принадлежность значения переменной инстанса с именем name к типу value_type

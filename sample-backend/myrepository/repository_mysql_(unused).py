@@ -6,7 +6,7 @@ import sys  # for repository factory (it creates class by name (string))
 from abc import ABC, abstractmethod
 
 
-OPTIONS_FILE_PATH = "options.json"
+OPTIONS_FILE_PATH = "../options.json"
 DB_NAME = "sample_database"
 TABLE_NAME = "sample_table"
 

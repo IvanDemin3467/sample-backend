@@ -1,8 +1,9 @@
 from .abstract_repository import AbstractRepository
-import psycopg2
+import psycopg2  # Postgres adaptor is here
 from psycopg2.extras import RealDictCursor
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import json
+from functools import lru_cache
 
 DB_NAME = "postgres"
 TABLE_NAME = "sample_table"
@@ -12,10 +13,9 @@ PAGE_LIMIT = 10
 
 class RepositoryPostgres(AbstractRepository):
     """
-    Это конкретная реализация репозитория для хранения сущностей Entity в базе данных MySQL.
+    Это конкретная реализация репозитория для хранения сущностей Entity в базе данных PostgreSQL.
     Используется доступ по логину и паролю
-    Класс может быть создан при помощи фабрики RepositoryFactory в качестве одного из дух возможных вариантов.
-    Другая возможность - использовать репозиторий RepositoryList.
+    Класс может быть создан при помощи фабрики RepositoryFactory в качестве одного из возможных вариантов
     """
 
     def __init__(self, options: dict):
