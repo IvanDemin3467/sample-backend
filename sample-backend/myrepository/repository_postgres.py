@@ -3,12 +3,13 @@ import psycopg2  # Postgres adaptor is here
 from psycopg2.extras import RealDictCursor
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import json
-from functools import lru_cache
+from .cache_lru import CacheLRU
 
 DB_NAME = "postgres"
 TABLE_NAME = "sample_table"
 HOST_NAME = "localhost"
 PAGE_LIMIT = 10
+CACHE_SIZE = 5
 
 
 class RepositoryPostgres(AbstractRepository):
@@ -23,16 +24,17 @@ class RepositoryPostgres(AbstractRepository):
         Простая инициализация
         :param options: словарь параметров. Для данного репозитория используются параметры username, password
         """
-        self.__options = options  # Сохранить настройки
-        self.__init_db()  # Инициализировать базу данных
-        self._cache = {}  # Инициализировать простой кэш
+        self.__options = options  # Save options
+        self.__init_db()  # Init repository
+        self.__cache = CacheLRU(maxsize=CACHE_SIZE)  # LRU cache init
 
-    def __get_db_connection(self) -> psycopg2.connect:
+    def __get_db_connection(self) -> psycopg2.connect or None:
         """
-        Вспомогательная процедура для создания подключения к базе данных, расположенной на локальном компьютере.
-        В качестве параметров использует логин и пароль, хранимые в словаре __options.
-        В качестве имени базы использует значение глобальной константы DB_NAME
-        :return: если подключение к базе успешно, то возвращает объект mysql.connector.connect, иначе возвращает None
+        Helper procedure for creating a connection to a database located on the local computer.
+        It uses the login and password stored in the __options dictionary as parameters.
+        Uses the value of the global constant DB_NAME as the name of the database
+        :return: if the connection to the database is successful, it returns the mysql.connector.connect object,
+            otherwise it returns None
         """
         try:
             return psycopg2.connect(dbname=DB_NAME,
@@ -50,29 +52,29 @@ class RepositoryPostgres(AbstractRepository):
 
     def __make_query(self, query: str, entity=AbstractRepository.template) -> list:
         """
-        Вспомогательная процедура для создания запросов к базе данных
-        Использует передачу именованных параметров для противостояния атакам SQL injection
-        Если при вызове передан небезопасный запрос, то исключения не возникает
-        :param query: строка запроса к базе, отформатированная в соответствии со стандартами MySQL
-        :param entity: словарь с параметрами сущности; содержит целочисленное значение id
-        :return: возвращает ответ от базы данных.
-        Это может быть список словарей с параметрами сущностей в случае запроса SELECT,
-            либо пустая строка в других случаях
-        Если запрос к базе возвращает исключение, то данная процедура возвращает []
+        Helper procedure for creating database queries.
+        Uses named parameter passing to resist SQL injection attacks
+        Doesn't check the security risks of the query itself
+        :param query: database query string formatted according to PostgreSQL standards
+        :param entity: a dictionary with entity parameters; contains an integer 'id' value
+        :return: a response from the database.
+        It can be a list of dictionaries with entity parameters in the case of a SELECT query,
+            or an empty string in other cases.
+        If a query to the database returns an exception, then this procedure returns []
         """
         try:
-            conn = self.__get_db_connection()  # Создать подключение
-            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            conn = self.__get_db_connection()  # Create connection
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)  # To allow complex tasks such as table creation
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(query, entity)  # выполнить запрос безопасным образом
+                cur.execute(query, entity)  # Execute the request in a safe way
                 print(query, entity)
-                results = cur.fetchall()  # получить результаты выполнения
-                results = json.dumps(results)
+                results = cur.fetchall()  # Get execution results
+                results = json.dumps(results)  # Make sure the result is a list
                 results = json.loads(results)
                 print(results)
-                cur.close()  # вручную закрыть курсор
-            conn.commit()  # вручную указать, что транзакции завершены
-            conn.close()  # вручную закрыть соединение
+                cur.close()  # Manually close the cursor
+            conn.commit()  # Manually indicate that transactions are complete
+            conn.close()  # Manually close connection
             return results
         except BaseException as err:
             print(f"Error with db: {err}")
@@ -80,51 +82,55 @@ class RepositoryPostgres(AbstractRepository):
 
     def __init_db(self) -> int:
         """
-        Инициализация базы данных
-        :return: возвращает всегда 0, так как исключения обрабатываются в вызываемой процедуре __make_query()
+        This method initializes db
+        :return: always returns 0, since exceptions are handled in the called __make_query() procedure
         """
         # results = self.__make_query(
         #     f"CREATE DATABASE {DB_NAME};")  # создать базу с именем DB_NAME, если не существует
-        results = self.__make_query(f"DROP TABLE public.{TABLE_NAME};")  # удаляем таблицу из предыдущих запусков
+        results = self.__make_query(f"DROP TABLE public.{TABLE_NAME};")  # Delete the table from previous runs
         print(results)
-        # далее создать таблицу.
-        #   id: целочисленное без автоматического инкремента
-        #   title: строковое с максимальной длинной 255
+        # Create a table
         results = self.__make_query(f"""
-CREATE TABLE IF NOT EXISTS public.sample_table
-(
-    id integer NOT NULL,
-    title character varying(255),
-    value character varying(255),
-    PRIMARY KEY (id)
-);
+            CREATE TABLE IF NOT EXISTS public.sample_table
+            (
+                id integer NOT NULL,
+                title character varying(255),
+                value character varying(255),
+                PRIMARY KEY (id)
+            );
 
-ALTER TABLE public.sample_table
-    OWNER to postgres;""")
+            ALTER TABLE public.sample_table
+                OWNER to postgres;""")
         print(results)
         return 0
 
-    def __clear_cache(self) -> None:
-        """
-        Clears cache. Use it on every DB-changing operation
-        :return: None
-        """
-        self._cache = {}
-
     @staticmethod
     def __format_keys(entity: dict) -> str:
+        """
+        Prepare string of keys for db query
+        @param entity: dict of entity fields
+        @return: string of keys comma separated
+        """
         keys = ", ".join(list(entity.keys()))
-        # print(keys)
         return keys
 
     @staticmethod
     def __format_values(entity: dict) -> str:
+        """
+        Prepare string of values for db query
+        @param entity: dict of entity fields
+        @return: string of values in format %(value) comma separated
+        """
         values = "%(" + ")s, %(".join(list(entity.keys())) + ")s"
-        # print(values)
         return values
 
     @staticmethod
     def __format_keys_no_id(entity: dict) -> str:
+        """
+        Same as __format_keys() but excludes 'id' field.
+        @param entity: dict of entity fields.
+        @return: string of keys comma separated.
+        """
         current_entity = entity.copy()
         current_entity.pop('id')
         keys_list = list(current_entity.keys())
@@ -132,11 +138,14 @@ ALTER TABLE public.sample_table
             keys = keys_list[0]
         else:
             keys = f'({", ".join(list(entity.keys())[1:])})'
-        # print(keys)
         return keys
 
     @staticmethod
     def __format_values_no_id(entity: dict) -> str:
+        """Same as __format_values() but excludes 'id' field.
+        @param entity:  dict of entity fields.
+        @return: string of values in format %(value) comma separated.
+        """
         current_entity = entity.copy()
         current_entity.pop('id')
         values_list = list(current_entity.keys())
@@ -149,28 +158,29 @@ ALTER TABLE public.sample_table
 
     def get(self, entity_id: int) -> dict:
         """
-        Возвращает одного пользователя по id.
-        Использует простой кэш на словаре.
-        :param entity_id: целочисленное значение id пользователя
-        :return: если пользователь найден в базе, то возвращает сущность пользователя, иначе возвращает {}
+        This method returns one entity by id from the repository.
+        Uses a cache on an ordered dictionary.
+        :param entity_id: integer value of the entity 'id'.
+        :return: if the entity is found in the repository, then it returns the entity, otherwise it returns {}.
         """
-        key = ("get", entity_id)
-        if key in self._cache:
-            results = self._cache[key]
+        results = self.__cache.get(entity_id)  # Try to retrieve entity from cache
+        if results == -1:  # If cache miss -> perform normal db query
+            print(f"Cache miss {entity_id}")
+            params = self.get_template(entity_id=entity_id)  # Prepare params for query
+            results = self.__make_query(f"SELECT * FROM {TABLE_NAME} WHERE id = %(id)s", params)  # Make query to DB
+            try:
+                results = results[0]  # Check if the response from DB is valid
+            except IndexError:
+                return {}  # If response is invalid -> return empty entity
+            self.__cache.put(key=entity_id, value=results)  # If response is valid - > save entity to cache
         else:
-            params = self.get_template(entity_id=entity_id)
-            results = self.__make_query(f"SELECT * FROM {TABLE_NAME} WHERE id = %(id)s", params)
-            self._cache[key] = results
-
-        try:
-            return results[0]
-        except IndexError:
-            return {}
+            print(f"Cache hit {self.__cache.index().__str__()}")
+        return results
 
     def index(self) -> list[dict]:
         """
-        Возвращает все сущности из репозитория
-        :return: если репозиторий не пуст, то возвращает список c сущностями из него, иначе возвращает []
+        This method returns all entities from the repository.
+        :return: if the repository is not empty, then it returns a list with entities from it, otherwise it returns [].
         """
         entities_list = self.__make_query(f"SELECT * FROM {TABLE_NAME}")
         if entities_list is None:
@@ -179,9 +189,9 @@ ALTER TABLE public.sample_table
 
     def list_paginated(self, page: int) -> list[dict]:
         """
-        Возвращает пользователей в базе постранично
-        :param page: номер страницы, начиная с 1
-        :return: если репозиторий не пуст, то возвращает список c сущностями из него, иначе возвращает []
+        This method returns all entities from the repository page-by-page.
+        :param page: page number; starting page is 1.
+        :return: if the repository is not empty, then it returns a list with entities from it, otherwise it returns [].
         """
         offset = (page - 1) * PAGE_LIMIT
         entities_list = self.__make_query(f"SELECT * FROM {TABLE_NAME} LIMIT {PAGE_LIMIT} OFFSET {offset}")
@@ -191,9 +201,9 @@ ALTER TABLE public.sample_table
 
     def add(self, entity: dict) -> int:
         """
-        Добавляет новую сущность в репозиторий
-        :param entity: сущность с заполненными параметрами
-        :return: если сущность с таким id не существует, то возвращает 0, иначе возвращает -1
+        This method adds a new entity to the repository.
+        :param entity: entity with filled parameters.
+        :return: if an entity with this id does not exist, then it returns 0, otherwise it returns -1
         """
         keys = self.__format_keys(entity)
         values = self.__format_values(entity)
@@ -201,36 +211,40 @@ ALTER TABLE public.sample_table
             self.__make_query(f"""INSERT INTO {TABLE_NAME} ({keys}) 
                               VALUES ({values}) RETURNING id;""",
                               entity=entity)
-            self.__clear_cache()
+            self.__cache.put(entity["id"], entity)
             return 0
         return -1
 
     def delete(self, entity_id: int) -> int:
         """
-        Удаляет одну сущность из репозитория по id
-        :param entity_id: целочисленное значение id сущности
-        :return: если сущность с таким id существует на момент удаления, то возвращает 0, иначе возвращает -1
+        This method deletes one entity from the repository by id.
+        :param entity_id: integer value 'id' of the entity..
+        :return: if an entity with this id exists at the time of deletion, then it returns 0, otherwise it returns -1.
         """
-        if self.get(entity_id) != {}:
-            params = self.get_template(entity_id=entity_id)
-            self.__make_query(f"DELETE FROM {TABLE_NAME} WHERE id = %(id)s RETURNING id;", entity=params)
-            self.__clear_cache()
+        if self.get(entity_id) != {}:  # Check if entity exists in repository
+            params = self.get_template(entity_id=entity_id)  # Prepare params for query
+            self.__make_query(f"DELETE FROM {TABLE_NAME} WHERE id = %(id)s RETURNING id;", entity=params)  # Do query
+            self.__cache.delete(entity_id)  # Delete entity from cache. It's cheaper than __cache.clear()
             return 0
         return -1
 
     def update(self, entity: dict) -> int:
         """
-        Обновляет хранимую сущность в соответствии с переданным параметром
-        :param entity: сущность с заполненными параметрами
-        :return: если сущность с таким id существует, то возвращает обновляет её и возвращает 0, иначе возвращает -1
+        This method updates one entity from the repository by id.
+        :param entity: entity with filled parameters.
+        :return: if an entity with this id exists, then it updates entity and returns 0, otherwise it returns -1.
         """
         if self.get(entity["id"]) != {}:
-            keys = self.__format_keys_no_id(entity)
-            values = self.__format_values_no_id(entity)
+            keys = self.__format_keys_no_id(entity)  # Prepare keys for query
+            values = self.__format_values_no_id(entity)  # Prepare values for query
             self.__make_query(f"""UPDATE {TABLE_NAME} 
                                 SET {keys} = {values} 
                                 WHERE id = %(id)s RETURNING id;""",
-                              entity=entity)
-            self.__clear_cache()
+                              entity=entity)  # Do query
+            self.__cache.delete(entity["id"])  # Delete entity from cache. It's cheaper than updating the cache
             return 0
         return -1
+
+
+if __name__ == "__main__":
+    pass

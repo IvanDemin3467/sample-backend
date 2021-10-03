@@ -100,6 +100,7 @@ if __name__ == '__main__':
     При запуске через WSGI-сервер этот блок игнорируется
     """
 
+    # Main test
     for i in range(1, 12):
         entity = repo.get_template(i, str(i))
         repo.add(entity)
@@ -108,9 +109,29 @@ if __name__ == '__main__':
     entity = repo.get_template(1, "123")
     repo.update(entity)
     print(repo.index())
+    
+    for i in range(1, 5):
+        ent = repo.get_template(i, str(i))
+        repo.get(i)  # Cache miss expected
+        repo.get(i)  # Cache hit expected
 
     for i in range(12):
         repo.delete(i)
     print(repo.index())
+
+    # Cache test
+    """for i in range(1, 5):
+        ent = repo.get_template(i, str(i))
+        repo.add(ent)
+    print(repo.index())
+
+    for i in range(1, 5):
+        ent = repo.get_template(i, str(i))
+        repo.get(i)  # Cache miss expected
+        repo.get(i)  # Cache hit expected
+
+    for i in range(1, 5):
+        repo.delete(i)
+    print(repo.index())"""
 
     app.run(host="127.0.0.1", port=80)
