@@ -1,7 +1,7 @@
 {
   "name": "ultimate-flask-front-end",
   "version": "1.0.0",
-  "description": "",
+  "description": "Be sure to check out the blog posts-",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/realpython/ultimate-flask-front-end#readme",
   "devDependencies": {
-    "bower": "^1.7.9",
+    "bower": "^1.8.12",
     "del": "^2.2.0",
     "gulp": "^3.9.1",
     "gulp-browser": "^2.1.4",
