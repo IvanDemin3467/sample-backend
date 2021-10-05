@@ -94,6 +94,22 @@ def upd_entity(entity_id: int) -> (str, int):
     return 'Success. Entity updated', 204
 
 
+@app.route('/user/search/', methods=['GET'])
+def search_entity() -> (str, int):
+    """
+    Точка входа для запроса на получение записи пользователя по id. Пример запроса:
+    curl http://localhost:80/users
+    :return: если база не пуста, то возвращает json с данными пользователей и код 200,
+        иначе возвращает код 404
+        Формат возвращаемого значения: [{"id": user_id1, "title": title1}, {"id": user_id2, "title": title2}]
+    """
+    query = request.args.get('query')
+    entities_list = repo.search(query)
+    if not entities_list:
+        return "Nothing found", 404
+    return jsonify(entities_list), 200
+
+
 if __name__ == '__main__':
     """
     Тестовый запуск сервиса. Активируется только при непосредственном запуске приложения.

@@ -245,6 +245,18 @@ class RepositoryPostgres(AbstractRepository):
             return 0
         return -1
 
+    def search(self, query: str) -> list[dict]:
+        """
+        This method returns all entities from the repository.
+        :return: if the repository is not empty, then it returns a list with entities from it, otherwise it returns [].
+        """
+        entities_list = self.__make_query(f"""SELECT * FROM {TABLE_NAME} WHERE 
+                                            to_tsvector(title) @@ to_tsquery(%(query)s);""",
+                                          entity={"query": query})
+        if entities_list is None:
+            return []
+        return entities_list
+
 
 if __name__ == "__main__":
     pass

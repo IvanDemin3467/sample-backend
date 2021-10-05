@@ -54,6 +54,8 @@ if __name__ == '__main__':
 
     tester.sample_test("Получить все записи", 'user', get, 200)
 
+    tester.sample_test("Поиск в базе", 'user/search/?query=Pyotr', get, 200)
+
     tester.sample_test("Получить одну запись с id=2", 'user/2', get, 200)
     tester.sample_test("Получить одну запись с id=2", 'user/2', get, 200)  # Тест кеша
 

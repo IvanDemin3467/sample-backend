@@ -37,6 +37,10 @@ class AbstractRepository(ABC):
     def update(self, reference) -> int:
         raise NotImplementedError
 
+    @abstractmethod
+    def search(self, query: str) -> int:
+        raise NotImplementedError
+
     def get_template(self, entity_id=0, par1="filer") -> dict:
         result = self.template.copy()
         result["id"] = entity_id
