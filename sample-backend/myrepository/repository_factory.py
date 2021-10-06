@@ -9,6 +9,7 @@ from .abstract_repository_factory import AbstractRepositoryFactory
 from .repository_list import RepositoryList
 from .repository_bytearray import RepositoryBytearray
 from .repository_postgres import RepositoryPostgres
+from .repository_ordered_dict import RepositoryOrderedDict
 
 OPTIONS_FILE_PATH = "options.json"
 

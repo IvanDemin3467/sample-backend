@@ -224,7 +224,7 @@ class RepositoryPostgres(AbstractRepository):
         if self.get(entity_id) != {}:  # Check if entity exists in repository
             params = self.get_template(entity_id=entity_id)  # Prepare params for query
             self.__make_query(f"DELETE FROM {TABLE_NAME} WHERE id = %(id)s RETURNING id;", entity=params)  # Do query
-            self.__cache.delete(entity_id)  # Delete entity from cache. It's cheaper than __cache.clear()
+            self.__cache.delete(entity_id)  # Delete entity from cache. It's cheaper than __db.clear()
             return 0
         return -1
 
