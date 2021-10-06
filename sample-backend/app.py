@@ -131,6 +131,8 @@ if __name__ == '__main__':
         repo.get(i)  # Cache miss expected
         repo.get(i)  # Cache hit expected
 
+    print(repo.search("2"))
+
     for i in range(12):
         repo.delete(i)
     print(repo.index())
