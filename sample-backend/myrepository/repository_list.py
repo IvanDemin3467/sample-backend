@@ -106,3 +106,11 @@ class RepositoryList(AbstractRepository):
             self.__db[i] = entity
             return 0
         return -1
+
+    @measure_time
+    def search(self, query: str) -> list[dict]:
+        result = []
+        for entity in self.__db:
+            if query in entity["title"]:
+                result.append(entity)
+        return result
