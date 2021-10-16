@@ -10,6 +10,7 @@ from .repository_list import RepositoryList
 from .repository_bytearray import RepositoryBytearray
 from .repository_postgres import RepositoryPostgres
 from .repository_ordered_dict import RepositoryOrderedDict
+from .repository_asyncpg import RepositoryAsyncpg
 
 OPTIONS_FILE_PATH = "options.json"
 
